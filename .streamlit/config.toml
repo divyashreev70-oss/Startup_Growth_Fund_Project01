@@ -1,0 +1,75 @@
+# ==================================================
+# STREAMLIT CONFIGURATION
+# Startup Analytics Dashboard
+# ==================================================
+
+[theme]
+
+# Primary accent color
+primaryColor = "#4F46E5"
+
+# Main background
+backgroundColor = "#FFFFFF"
+
+# Sidebar and widget background
+secondaryBackgroundColor = "#F3F4F6"
+
+# Text color
+textColor = "#111827"
+
+# Font options: "sans serif", "serif", "monospace"
+font = "sans serif"
+
+# ==================================================
+# SERVER SETTINGS
+# ==================================================
+
+[server]
+
+# Run without browser popup
+headless = true
+
+# Enable file watcher
+runOnSave = true
+
+# Maximum upload size (MB)
+maxUploadSize = 500
+
+# Maximum message size (MB)
+maxMessageSize = 500
+
+# ==================================================
+# BROWSER SETTINGS
+# ==================================================
+
+[browser]
+
+# Dashboard title shown in browser tab
+gatherUsageStats = false
+
+# ==================================================
+# CLIENT SETTINGS
+# ==================================================
+
+[client]
+
+# Show error details
+showErrorDetails = true
+
+# ==================================================
+# GLOBAL SETTINGS
+# ==================================================
+
+[global]
+
+# Disable warning messages
+developmentMode = false
+
+# ==================================================
+# LOGGER SETTINGS
+# ==================================================
+
+[logger]
+
+level = "info"
+messageFormat = "%(asctime)s %(message)s"
