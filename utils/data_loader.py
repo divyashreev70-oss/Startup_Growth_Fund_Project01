@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+from pathlib import Path
 
 # ==========================================================
 # REQUIRED COLUMNS
@@ -46,18 +47,19 @@ def validate_columns(df):
 
 def clean_data(df):
 
-    # Remove duplicate rows
     df = df.drop_duplicates()
 
-    # Remove extra spaces
     object_cols = df.select_dtypes(
         include=["object"]
     ).columns
 
     for col in object_cols:
-        df[col] = df[col].astype(str).str.strip()
+        df[col] = (
+            df[col]
+            .astype(str)
+            .str.strip()
+        )
 
-    # Fill numeric nulls
     numeric_cols = df.select_dtypes(
         include=["int64", "float64"]
     ).columns
@@ -67,7 +69,6 @@ def clean_data(df):
             df[col].median()
         )
 
-    # Fill categorical nulls
     categorical_cols = df.select_dtypes(
         include=["object"]
     ).columns
@@ -86,21 +87,23 @@ def clean_data(df):
 
 def convert_profitability(df):
 
-    if df["Profitable"].dtype == object:
+    if "Profitable" in df.columns:
 
-        df["Profitable"] = (
-            df["Profitable"]
-            .astype(str)
-            .str.lower()
-            .map({
-                "true": True,
-                "false": False,
-                "yes": True,
-                "no": False,
-                "1": True,
-                "0": False
-            })
-        )
+        if df["Profitable"].dtype == object:
+
+            df["Profitable"] = (
+                df["Profitable"]
+                .astype(str)
+                .str.lower()
+                .map({
+                    "true": True,
+                    "false": False,
+                    "yes": True,
+                    "no": False,
+                    "1": True,
+                    "0": False
+                })
+            )
 
     return df
 
@@ -113,41 +116,48 @@ def create_features(df):
 
     current_year = pd.Timestamp.now().year
 
-    # Startup Age
     df["Startup Age"] = (
-        current_year -
+        current_year
+        -
         df["Year Founded"]
     )
 
-    # Funding Efficiency
     df["Funding Efficiency"] = (
         df["Revenue (M USD)"]
         /
-        df["Funding Amount (M USD)"]
+        (
+            df["Funding Amount (M USD)"]
+            + 1
+        )
     )
 
-    # Valuation Multiple
     df["Valuation Multiple"] = (
         df["Valuation (M USD)"]
         /
-        df["Revenue (M USD)"]
+        (
+            df["Revenue (M USD)"]
+            + 1
+        )
     )
 
-    # Revenue Per Employee
     df["Revenue Per Employee"] = (
         df["Revenue (M USD)"]
         /
-        df["Employees"]
+        (
+            df["Employees"]
+            + 1
+        )
     )
 
-    # Funding Per Employee
     df["Funding Per Employee"] = (
         df["Funding Amount (M USD)"]
         /
-        df["Employees"]
+        (
+            df["Employees"]
+            + 1
+        )
     )
 
-    # Growth Score
     df["Growth Score"] = (
         (
             df["Revenue (M USD)"]
@@ -161,7 +171,6 @@ def create_features(df):
         )
     )
 
-    # Replace infinite values
     df.replace(
         [np.inf, -np.inf],
         np.nan,
@@ -172,7 +181,7 @@ def create_features(df):
 
 
 # ==========================================================
-# MAIN LOADER
+# LOAD DATA
 # ==========================================================
 
 @st.cache_data(show_spinner=False)
@@ -180,9 +189,27 @@ def load_data():
 
     try:
 
-        df = pd.read_csv(
-            "data/startup_data.csv"
+        file_path = (
+            Path(__file__).parent.parent
+            / "data"
+            / "startup_data.csv"
         )
+
+        if not file_path.exists():
+
+            st.error(
+                f"""
+                ❌ Dataset not found.
+
+                Expected location:
+
+                {file_path}
+                """
+            )
+
+            st.stop()
+
+        df = pd.read_csv(file_path)
 
         validate_columns(df)
 
@@ -194,25 +221,17 @@ def load_data():
 
         return df
 
-    except FileNotFoundError:
-
-        st.error(
-            "❌ startup_data.csv not found in data folder."
-        )
-
-        return pd.DataFrame()
-
     except Exception as e:
 
         st.error(
             f"❌ Error loading dataset: {e}"
         )
 
-        return pd.DataFrame()
+        st.stop()
 
 
 # ==========================================================
-# FILTER FUNCTION
+# FILTER DATA
 # ==========================================================
 
 def filter_data(
@@ -226,23 +245,20 @@ def filter_data(
 
     if industries:
         filtered_df = filtered_df[
-            filtered_df["Industry"].isin(
-                industries
-            )
+            filtered_df["Industry"]
+            .isin(industries)
         ]
 
     if regions:
         filtered_df = filtered_df[
-            filtered_df["Region"].isin(
-                regions
-            )
+            filtered_df["Region"]
+            .isin(regions)
         ]
 
     if exit_status:
         filtered_df = filtered_df[
-            filtered_df["Exit Status"].isin(
-                exit_status
-            )
+            filtered_df["Exit Status"]
+            .isin(exit_status)
         ]
 
     return filtered_df
@@ -254,28 +270,38 @@ def filter_data(
 
 def get_summary_metrics(df):
 
-    metrics = {
+    return {
 
         "total_startups":
             len(df),
 
         "total_funding":
-            df["Funding Amount (M USD)"].sum(),
+            df["Funding Amount (M USD)"]
+            .sum(),
 
         "total_revenue":
-            df["Revenue (M USD)"].sum(),
+            df["Revenue (M USD)"]
+            .sum(),
 
         "total_valuation":
-            df["Valuation (M USD)"].sum(),
+            df["Valuation (M USD)"]
+            .sum(),
+
+        "total_employees":
+            df["Employees"]
+            .sum(),
 
         "avg_market_share":
-            df["Market Share (%)"].mean(),
+            round(
+                df["Market Share (%)"]
+                .mean(),
+                2
+            ),
 
         "profitability_rate":
-            (
-                df["Profitable"].mean()
-                * 100
+            round(
+                df["Profitable"]
+                .mean() * 100,
+                2
             )
     }
-
-    return metrics
